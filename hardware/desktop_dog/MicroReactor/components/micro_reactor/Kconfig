@@ -1,0 +1,372 @@
+menu "MicroReactor Configuration"
+
+    config UR_MAX_ENTITIES
+        int "Maximum number of entities"
+        default 16
+        range 1 256
+        help
+            Maximum number of entities that can be registered in the system.
+            Each entity consumes approximately 200 bytes of static memory.
+
+    config UR_MAX_RULES_PER_STATE
+        int "Maximum rules per state"
+        default 16
+        range 4 64
+        help
+            Maximum number of transition rules that can be defined per state.
+
+    config UR_MAX_STATES_PER_ENTITY
+        int "Maximum states per entity"
+        default 16
+        range 2 64
+        help
+            Maximum number of states an entity can have.
+
+    config UR_MAX_MIXINS_PER_ENTITY
+        int "Maximum mixins per entity"
+        default 4
+        range 0 16
+        help
+            Maximum number of mixins that can be attached to an entity.
+            Set to 0 to disable mixin support.
+
+    config UR_INBOX_SIZE
+        int "Entity inbox queue size"
+        default 8
+        range 4 64
+        help
+            Number of signals that can be queued in each entity's inbox.
+
+    config UR_SIGNAL_PAYLOAD_SIZE
+        int "Signal payload size (bytes)"
+        default 4
+        range 4 16
+        help
+            Size of inline payload in signals. Larger payloads use ptr field.
+
+    config UR_MAX_MIDDLEWARE
+        int "Maximum middleware slots"
+        default 8
+        range 0 32
+        help
+            Maximum number of middleware functions in the processing chain.
+            Set to 0 to disable middleware support.
+
+    config UR_SCRATCHPAD_SIZE
+        int "uFlow scratchpad size (bytes)"
+        default 64
+        range 16 256
+        help
+            Size of scratchpad memory for uFlow coroutine local variables.
+
+    config UR_ENABLE_HSM
+        bool "Enable Hierarchical State Machine support"
+        default y
+        help
+            Enable parent state lookups for HSM-style state nesting.
+
+    config UR_ENABLE_LOGGING
+        bool "Enable debug logging"
+        default n
+        help
+            Enable internal debug logging via ESP_LOGx macros.
+
+    config UR_LOG_LEVEL
+        int "Log level (0=none, 5=verbose)"
+        default 3
+        depends on UR_ENABLE_LOGGING
+        range 0 5
+        help
+            Verbosity level for debug logging.
+
+    config UR_ENABLE_TIMESTAMPS
+        bool "Enable signal timestamps"
+        default y
+        help
+            Add timestamps to signals using esp_timer_get_time().
+
+    config UR_ENABLE_EXTRA_WARNINGS
+        bool "Enable extra compiler warnings"
+        default n
+        help
+            Enable -Wall -Wextra -Wpedantic for development.
+
+    menu "Wormhole (Distributed RPC)"
+
+        config UR_WORMHOLE_ENABLE
+            bool "Enable Wormhole subsystem"
+            default n
+            help
+                Enable cross-chip signal routing via UART.
+
+        config UR_WORMHOLE_MAX_ROUTES
+            int "Maximum routing table entries"
+            default 32
+            depends on UR_WORMHOLE_ENABLE
+            range 8 256
+            help
+                Maximum number of remote entity routes.
+
+        config UR_WORMHOLE_UART_NUM
+            int "UART port number"
+            default 1
+            depends on UR_WORMHOLE_ENABLE
+            range 0 2
+            help
+                UART port used for Wormhole communication.
+
+        config UR_WORMHOLE_BAUD_RATE
+            int "UART baud rate"
+            default 115200
+            depends on UR_WORMHOLE_ENABLE
+            help
+                Baud rate for Wormhole UART communication.
+
+        config UR_WORMHOLE_RX_TASK_STACK
+            int "RX task stack size"
+            default 4096
+            depends on UR_WORMHOLE_ENABLE
+            range 2048 8192
+            help
+                Stack size for the Wormhole receive task.
+
+        config UR_WORMHOLE_RX_TASK_PRIORITY
+            int "RX task priority"
+            default 5
+            depends on UR_WORMHOLE_ENABLE
+            range 1 24
+            help
+                Priority for the Wormhole receive task.
+
+    endmenu
+
+    menu "Supervisor (Self-Healing)"
+
+        config UR_SUPERVISOR_ENABLE
+            bool "Enable Supervisor subsystem"
+            default n
+            help
+                Enable entity supervision and self-healing.
+
+        config UR_SUPERVISOR_MAX_CHILDREN
+            int "Maximum children per supervisor"
+            default 8
+            depends on UR_SUPERVISOR_ENABLE
+            range 1 32
+            help
+                Maximum number of entities a supervisor can monitor.
+
+        config UR_SUPERVISOR_RESTART_DELAY_MS
+            int "Restart delay (ms)"
+            default 100
+            depends on UR_SUPERVISOR_ENABLE
+            range 0 10000
+            help
+                Delay before restarting a failed entity.
+
+    endmenu
+
+    menu "Panic Handler"
+
+        config UR_PANIC_ENABLE
+            bool "Enable panic handler"
+            default y
+            help
+                Enable panic hook and black box logging.
+
+        config UR_PANIC_BLACKBOX_SIZE
+            int "Black box signal history"
+            default 16
+            depends on UR_PANIC_ENABLE
+            range 4 64
+            help
+                Number of recent signals to store in black box.
+
+    endmenu
+
+    menu "Data Pipes"
+
+        config UR_PIPE_ENABLE
+            bool "Enable data pipes"
+            default y
+            help
+                Enable StreamBuffer-based data pipes.
+
+        config UR_PIPE_DEFAULT_SIZE
+            int "Default pipe buffer size"
+            default 256
+            depends on UR_PIPE_ENABLE
+            range 64 4096
+            help
+                Default size for pipe buffers when not specified.
+
+    endmenu
+
+    menu "Pub/Sub Bus"
+
+        config UR_BUS_ENABLE
+            bool "Enable Pub/Sub Bus"
+            default y
+            help
+                Enable topic-based publish/subscribe signal routing.
+                Provides O(subscribers) delivery instead of O(all_entities).
+
+        config UR_BUS_MAX_TOPICS
+            int "Maximum topics"
+            default 64
+            depends on UR_BUS_ENABLE
+            range 8 256
+            help
+                Maximum number of unique signal IDs that can have subscribers.
+
+        config UR_BUS_MAX_SUBSCRIBERS
+            int "Maximum subscribers per topic"
+            default 8
+            depends on UR_BUS_ENABLE
+            range 2 32
+            help
+                Maximum entities that can subscribe to a single topic.
+
+    endmenu
+
+    menu "Parameter System (KV Store)"
+
+        config UR_PARAM_ENABLE
+            bool "Enable Parameter System"
+            default y
+            help
+                Enable persistent key-value parameter storage with
+                auto-notification on changes.
+
+        config UR_PARAM_MAX_COUNT
+            int "Maximum parameters"
+            default 32
+            depends on UR_PARAM_ENABLE
+            range 8 128
+            help
+                Maximum number of parameters that can be registered.
+
+        config UR_PARAM_MAX_STRING_LEN
+            int "Maximum string/blob length"
+            default 64
+            depends on UR_PARAM_ENABLE
+            range 16 256
+            help
+                Maximum length for string and blob type parameters.
+
+        config UR_PARAM_NAMESPACE
+            string "NVS namespace"
+            default "ur_param"
+            depends on UR_PARAM_ENABLE
+            help
+                Namespace used for NVS storage.
+
+    endmenu
+
+    menu "Signal Codec (RPC)"
+
+        config UR_CODEC_ENABLE
+            bool "Enable Signal Codec"
+            default y
+            help
+                Enable signal serialization/deserialization for
+                external communication (MQTT, HTTP, UART).
+
+        config UR_CODEC_MAX_SCHEMAS
+            int "Maximum signal schemas"
+            default 32
+            depends on UR_CODEC_ENABLE
+            range 8 128
+            help
+                Maximum number of signal schemas for structured encoding.
+
+        config UR_CODEC_BUFFER_SIZE
+            int "Codec buffer size"
+            default 256
+            depends on UR_CODEC_ENABLE
+            range 64 1024
+            help
+                Buffer size for streaming decoder.
+
+        config UR_CODEC_JSON_ENABLE
+            bool "Enable JSON codec"
+            default y
+            depends on UR_CODEC_ENABLE
+            help
+                Enable JSON format encoding/decoding (larger code size).
+
+    endmenu
+
+    menu "Power Management"
+
+        config UR_POWER_ENABLE
+            bool "Enable Power Management"
+            default y
+            help
+                Enable vote-based automatic power management with
+                tickless idle support.
+
+        config UR_POWER_MAX_MODES
+            int "Maximum power modes"
+            default 4
+            depends on UR_POWER_ENABLE
+            range 2 8
+            help
+                Number of power modes (active, idle, light sleep, deep sleep).
+
+        config UR_POWER_IDLE_THRESHOLD_MS
+            int "Idle threshold (ms)"
+            default 100
+            depends on UR_POWER_ENABLE
+            range 10 1000
+            help
+                Minimum idle time before entering sleep modes.
+
+    endmenu
+
+    menu "Performance Tracing"
+
+        config UR_TRACE_ENABLE
+            bool "Enable Performance Tracing"
+            default n
+            help
+                Enable execution tracing for timing analysis.
+                Adds overhead when enabled.
+
+        config UR_TRACE_BUFFER_SIZE
+            int "Trace buffer size"
+            default 4096
+            depends on UR_TRACE_ENABLE
+            range 1024 16384
+            help
+                Size of trace output buffer.
+
+        config UR_TRACE_MAX_ENTRIES
+            int "Maximum trace entries"
+            default 256
+            depends on UR_TRACE_ENABLE
+            range 64 1024
+            help
+                Number of trace events to store in ring buffer.
+
+    endmenu
+
+    menu "Access Control (Firewall)"
+
+        config UR_ACL_ENABLE
+            bool "Enable Access Control"
+            default y
+            help
+                Enable source-based signal filtering for security.
+
+        config UR_ACL_MAX_RULES
+            int "Maximum ACL rules per entity"
+            default 32
+            depends on UR_ACL_ENABLE
+            range 8 128
+            help
+                Maximum number of ACL rules per protected entity.
+
+    endmenu
+
+endmenu
